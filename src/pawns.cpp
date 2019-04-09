@@ -140,6 +140,24 @@ namespace {
         else if (backward)
             score -= Backward, e->weakUnopposed[Us] += !opposed;
 
+        else { // Weak "forward" pawn..?
+
+            int r = relative_rank(Us, s);
+
+            Bitboard pawnSafeSquares = ~(pawn_attacks_bb<Them>(theirPawns) | ourPawns | theirPawns);
+
+            // Can be defended in one move..?
+
+            Bitboard protectors = neighbours & rank_bb(s - Up - Up);
+
+            if (r == RANK_5)
+                protectors |= shift<Up>(neighbours & rank_bb(s - Up - Up - Up));
+
+            if (!(shift<Up>(protectors) & pawnSafeSquares)) {
+                score -= Backward, e->weakUnopposed[Us] += !opposed;
+            }
+        }
+
         if (doubled && !support)
             score -= Doubled;
     }
