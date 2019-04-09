@@ -155,7 +155,7 @@ namespace {
                 protectors |= shift<Up>(neighbours & rank_bb(s - Up - Up - Up)) & pawnSafeSquares;
 
             if (!(shift<Up>(protectors) & pawnSafeSquares))
-                score -= Forward;
+                score -= Forward, e->weakUnopposed[Us] += !opposed;
         }
 
         if (doubled && !support)
