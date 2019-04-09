@@ -31,6 +31,7 @@ namespace {
   #define S(mg, eg) make_score(mg, eg)
 
   // Pawn penalties
+  constexpr Score Forward  = S( 5, 10);
   constexpr Score Backward = S( 9, 24);
   constexpr Score Doubled  = S(11, 56);
   constexpr Score Isolated = S( 5, 15);
@@ -139,6 +140,24 @@ namespace {
 
         else if (backward)
             score -= Backward, e->weakUnopposed[Us] += !opposed;
+
+
+        else { // Weak "forward" pawn..?
+
+            int r = relative_rank(Us, s);
+
+            Bitboard pawnSafeSquares = ~(ourPawns | theirPawns) & (~pawn_attacks_bb<Them>(theirPawns) | e->pawnAttacks[Us]);
+
+            // Can be defended in one move..?
+
+            Bitboard protectors = neighbours & rank_bb(s - Up - Up);
+
+            if (r == RANK_5)
+                protectors |= shift<Up>(neighbours & rank_bb(s - Up - Up - Up)) & pawnSafeSquares;
+
+            if (!(shift<Up>(protectors) & pawnSafeSquares))
+                score -= Forward;
+        }
 
         if (doubled && !support)
             score -= Doubled;
