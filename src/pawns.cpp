@@ -151,11 +151,10 @@ namespace {
             Bitboard protectors = neighbours & rank_bb(s - Up - Up);
 
             if (r == RANK_5)
-                protectors |= shift<Up>(neighbours & rank_bb(s - Up - Up - Up));
+                protectors |= shift<Up>(neighbours & rank_bb(s - Up - Up - Up)) & pawnSafeSquares;
 
-            if (!(shift<Up>(protectors) & pawnSafeSquares)) {
-                score -= Backward, e->weakUnopposed[Us] += !opposed;
-            }
+            if (!(shift<Up>(protectors) & pawnSafeSquares))
+                score -= Backward;
         }
 
         if (doubled && !support)
