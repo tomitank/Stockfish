@@ -67,9 +67,9 @@ namespace {
     constexpr Direction Up   = (Us == WHITE ? NORTH : SOUTH);
 
     Bitboard b, neighbours, stoppers, doubled, support, phalanx;
-    Bitboard lever, leverPush;
+    Bitboard lever, leverPush, front;
     Square s;
-    bool opposed, backward;
+    bool opposed, backward, forward;
     Score score = SCORE_ZERO;
     const Square* pl = pos.squares<PAWN>(Us);
 
@@ -83,6 +83,8 @@ namespace {
     e->pawnsOnSquares[Us][BLACK] = popcount(ourPawns & DarkSquares);
     e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
 
+    Bitboard pawnSafe = ~(pawn_attacks_bb<Them>(theirPawns) | ourPawns | theirPawns);
+
     // Loop through all pawns of the current color and score each pawn
     while ((s = *pl++) != SQ_NONE)
     {
@@ -94,6 +96,7 @@ namespace {
         e->pawnAttacksSpan[Us] |= pawn_attack_span(Us, s);
 
         // Flag the pawn
+        front      = ourPawns   & forward_file_bb(Us, s);
         opposed    = theirPawns & forward_file_bb(Us, s);
         stoppers   = theirPawns & passed_pawn_span(Us, s);
         lever      = theirPawns & PawnAttacks[Us][s];
@@ -107,6 +110,10 @@ namespace {
         // on the adjacent files and cannot be safely advanced.
         backward =  !(ourPawns & pawn_attack_span(Them, s + Up))
                   && (stoppers & (leverPush | (s + Up)));
+
+        // A pawn is forward when it is a first pawn on a file
+        // and can't be safely advanced and defended in one move.
+        forward = !opposed && !front && !(pawnSafe & (s + Up));
 
         // Passed pawns will be properly scored in evaluation because we need
         // full attack info to evaluate them. Include also not passed pawns
@@ -139,6 +146,17 @@ namespace {
 
         else if (backward)
             score -= Backward, e->weakUnopposed[Us] += !opposed;
+
+        else if (forward) { // Can be defended in one move..?
+
+            Bitboard defenders = neighbours & rank_bb(s - Up - Up);
+
+            if (relative_rank(Us, s) == RANK_5)
+                defenders |= shift<Up>(neighbours & rank_bb(s - Up - Up - Up)) & pawnSafe;
+
+            if ((shift<Up>(defenders) & pawnSafe) == 0)
+               e->weakUnopposed[Us]++;
+        }
 
         if (doubled && !support)
             score -= Doubled;
